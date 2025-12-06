@@ -1,0 +1,8 @@
+pandas
+psycopg2-binary
+python-dotenv
+pytest
+pytest-cov
+psycopg2
+numpy
+pyyaml
