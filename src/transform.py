@@ -3,7 +3,7 @@ import logging
 from src.util import get_logger
 
 logger = get_logger(name='Transform', log_file='../logs/etl.log', level=logging.INFO)
-
+# Merge validators !!
 class Transformer:
     def __init__(self, logger=None):
         self.logger = logger or get_logger(
@@ -11,7 +11,7 @@ class Transformer:
             log_file='../logs/etl.log',
             level=logging.INFO
         )
-        # keep transaction date as string to avoid NaT issues
+        # keep transaction date as string to avoid NaT
         self.expected_schema = {
             "Transaction ID": "int64",
             "Item": "string",
@@ -22,6 +22,7 @@ class Transformer:
             "Location": "string",
             "Transaction Date": "string"
         }
+
 
     # PRE-CLEANING VALIDATION
     def validate_raw_df(self, df: pd.DataFrame) -> bool:
@@ -40,6 +41,7 @@ class Transformer:
 
         self.logger.info("Pre-cleaning validation passed.")
         return True
+
 
     # POST-CLEANING VALIDATION
     def validate_clean_df(self, df: pd.DataFrame) -> bool:
@@ -60,55 +62,45 @@ class Transformer:
         self.logger.info("Post-cleaning validation passed.")
         return True
 
+
     # CLEANING
     def clean(self, df_raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         self.logger.info("Cleaning DataFrame...")
 
-        # Strip column whitespace
         df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
         # Standardize missing values to NA
         bad_values = ["ERROR", "UNKNOWN", "NaN", "NaT", "", " ", None]
         df = df_raw.replace(bad_values, pd.NA).copy()
 
-
-        # 1) TYPE CASTING + ID PARSING
-
         # Extract numeric part from TXN_1961373 → 1961373
         df["Transaction ID"] = (
-            df["Transaction ID"]
-            .astype(str)
-            .str.extract(r'(\d+)')
+            df["Transaction ID"].astype(str).str.extract(r'(\d+)')
         )
 
         # Safe type conversions, nums to ints and date to str
         df["Transaction ID"] = pd.to_numeric(df["Transaction ID"], errors="coerce").astype("Int64")
         df["Quantity"] = pd.to_numeric(df["Quantity"], errors="raise").astype("Int64")
-        df["Price Per Unit"] = pd.to_numeric(df["Price Per Unit"], errors="coerce")
-        df["Total Spent"] = pd.to_numeric(df["Total Spent"], errors="coerce")
+        df["Price Per Unit"] = pd.to_numeric(df["Price Per Unit"], errors="coerce").astype("float")
+        df["Total Spent"] = pd.to_numeric(df["Total Spent"], errors="coerce").astype("float")
         df["Transaction Date"] = df["Transaction Date"].astype("string")
         
         
-        # Fill missing values where possible
         df = self._fill_missing_values(df)
 
-        # 2) REQUIRED FIELDS CHECK
+
         required = ["Transaction ID", "Item", "Quantity", "Price Per Unit", "Total Spent",
                     "Payment Method", "Location"]
-
+        #Track bad rows
         df["__missing_required__"] = df[required].isna().any(axis=1)
 
-        # 3) DOMAIN CHECKS
 
         df["__invalid_domain__"] = False
-
         #Check all ints >= 0 
         df.loc[df["Quantity"] < 0, "__invalid_domain__"] = True
         df.loc[df["Price Per Unit"] < 0, "__invalid_domain__"] = True
         df.loc[df["Total Spent"] < 0, "__invalid_domain__"] = True
         
-
-        # 5) SPLIT REJECTS
 
         df_rejects = df[
             df["__missing_required__"] | df["__invalid_domain__"] | df.isna().any(axis=1)
@@ -121,7 +113,6 @@ class Transformer:
         df_rejects.drop(columns=["__missing_required__", "__invalid_domain__"], inplace=True, errors="ignore")
 
 
-        # 6) DEDUPLICATION
         before = len(df_clean)
         df_clean = df_clean.drop_duplicates(subset=["Transaction ID"])
         after = len(df_clean)
@@ -129,12 +120,10 @@ class Transformer:
 
 
         self.logger.info(f"Clean complete → {len(df_clean)} valid rows, {len(df_rejects)} rejects")
-
         return df_clean, df_rejects
 
 
-
-    #  Compute missing values where possible
+    #  Compute missing values where possible (Total = Qty * Price)
     def _fill_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
         mask_total = df["Total Spent"].isna() & df["Quantity"].notna() & df["Price Per Unit"].notna()
         df.loc[mask_total, "Total Spent"] = df.loc[mask_total, "Quantity"] * df.loc[mask_total, "Price Per Unit"]

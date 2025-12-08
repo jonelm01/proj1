@@ -6,6 +6,7 @@ import os
 
 class DataExtractor:
     def __init__(self, logger=None):
+        # Init logger for output to file
         self.logger = logger or get_logger(
             name='Extract',
             log_file='../logs/etl.log',
@@ -38,5 +39,3 @@ class DataExtractor:
 
         _log_preview(self.logger, data)
         return data
-
-    

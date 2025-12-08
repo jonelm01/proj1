@@ -1,5 +1,7 @@
 import pandas as pd
 
+#DEPRECATED !!
+'''
 def validate_df(df: pd.DataFrame, max_sales: float = None) -> bool:
 
     if df.empty:
@@ -23,9 +25,11 @@ def validate_df(df: pd.DataFrame, max_sales: float = None) -> bool:
         print("Validation Error: Negative sales values found.")
         return False
 
-    # Check if sales > max
+    # Check for sales > max
     if max_sales is not None and (sales_numeric > max_sales).any():
         print(f"Validation Warning: Sales values exceed maximum threshold of {max_sales}.")
+        # Does not fail validation
 
     print("Data validation passed.")
     return True
+'''

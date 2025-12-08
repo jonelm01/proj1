@@ -1,27 +1,92 @@
 import pandas as pd
 import pytest
-from src.validate import validate_df 
+from src.transform import Transformer
 
-def test_validate_df_positive_sales():
-    df = pd.DataFrame({"sales": [100, 200, 0, 50]})
-    assert validate_df(df) is True
+@pytest.fixture
+def transformer():
+    return Transformer(logger=None)
 
-def test_validate_df_negative_sales():
-    df = pd.DataFrame({"sales": [100, -50, 200]})
-    assert validate_df(df) is False
 
-def test_validate_df_null_sales():
-    df = pd.DataFrame({"sales": [100, None, 200]})
-    assert validate_df(df) is False
+def test_validate_raw_df_pass(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": [1],
+        "Item": ["A"],
+        "Quantity": [2],
+        "Price Per Unit": [1.5],
+        "Total Spent": [3.0],
+        "Payment Method": ["Cash"],
+        "Location": ["NY"],
+        "Transaction Date": ["2024-01-01"]
+    })
 
-def test_validate_df_non_numeric():
-    df = pd.DataFrame({"sales": [100, "abc", 200]})
-    assert validate_df(df) is False
+    assert transformer.validate_raw_df(df) is True
 
-def test_validate_df_max_threshold():
-    df = pd.DataFrame({"sales": [100, 200, 50]})
-    assert validate_df(df, max_sales=150) is True
 
-def test_validate_df_empty_dataframe():
-    df = pd.DataFrame(columns=["sales"])
-    assert validate_df(df) is True
+def test_validate_raw_df_missing_cols(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": [1],
+        "Item": ["A"]
+        # missing the other required columns
+    })
+
+    assert transformer.validate_raw_df(df) is False
+
+
+def test_validate_raw_df_extra_cols(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": [1],
+        "Item": ["A"],
+        "Quantity": [2],
+        "Price Per Unit": [1.5],
+        "Total Spent": [3.0],
+        "Payment Method": ["Cash"],
+        "Location": ["NY"],
+        "Transaction Date": ["2024-01-01"],
+        "ExtraColumn": [999]  
+    })
+
+    assert transformer.validate_raw_df(df) is True
+
+
+def test_validate_clean_df_valid_types(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": pd.Series([1], dtype="int64"),
+        "Item": pd.Series(["A"], dtype="string"),
+        "Quantity": pd.Series([2], dtype="int64"),
+        "Price Per Unit": pd.Series([1.5], dtype="float64"),
+        "Total Spent": pd.Series([3.0], dtype="float64"),
+        "Payment Method": pd.Series(["Cash"], dtype="string"),
+        "Location": pd.Series(["NY"], dtype="string"),
+        "Transaction Date": pd.Series(["2024-01-01"], dtype="string")
+    })
+
+    assert transformer.validate_clean_df(df) is True
+
+
+def test_validate_clean_df_wrong_type_int(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": pd.Series(["not an int"], dtype="string"),  # should be int64
+        "Item": pd.Series(["A"], dtype="string")
+    })
+
+    assert transformer.validate_clean_df(df) is False
+
+
+def test_validate_clean_df_wrong_type_float(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": pd.Series([1], dtype="int64"),
+        "Item": pd.Series(["A"], dtype="string"),
+        "Quantity": pd.Series([2], dtype="int64"),
+        "Price Per Unit": pd.Series(["wrong"], dtype="string"),  # expected float
+    })
+
+    assert transformer.validate_clean_df(df) is False
+
+
+def test_validate_clean_df_missing_optional_cols(transformer):
+    df = pd.DataFrame({
+        "Transaction ID": pd.Series([1], dtype="int64"),
+        "Item": pd.Series(["A"], dtype="string")
+    })
+
+    assert transformer.validate_clean_df(df) is True

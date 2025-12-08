@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from src.load import Loader, RejectsLoader
 
 
-# Fake DB connection + cursor 
+# Fake DB connection 
 @pytest.fixture
 def fake_conn():
     conn = MagicMock()
@@ -48,7 +48,7 @@ def test_sanitize_rejects_timestamps_and_nans():
         "c": ["NaT", "x"]
     })
 
-    out = loader._sanitize_rejects(df)
+    out = loader._sanitize(df)
 
     assert out.loc[0, "a"].year == 2020
     assert out.loc[1, "a"] is None

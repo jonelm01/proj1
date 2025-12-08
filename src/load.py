@@ -4,6 +4,7 @@ from src.util import get_logger, _log_preview
 from src.db_conn import get_conn
 import numpy as np
 
+#CHCK FOR UNUSED !!
 class Loader:
     allowed_tables = [
         "public.stg_product", "public.stg_location",
@@ -15,15 +16,15 @@ class Loader:
         self.conn_params = conn_params
         self.logger = get_logger(name='Load', log_file='../logs/etl.log')
 
-    # ---------------- TYPE INFERENCE ----------------
+    
     def _infer_pg_type(self, dtype):
         if pd.api.types.is_integer_dtype(dtype): return "BIGINT"
         if pd.api.types.is_float_dtype(dtype): return "DOUBLE PRECISION"
         if pd.api.types.is_bool_dtype(dtype): return "BOOLEAN"
         if pd.api.types.is_datetime64_any_dtype(dtype): return "TIMESTAMP"
         return "TEXT"
+    
 
-    # ---------------- TABLE CREATION ----------------
     def _create_table_if_not_exists(self, conn, df: pd.DataFrame, table_name: str, primary_key: str = None):
         cols = [f'"{col}" {self._infer_pg_type(dtype)}' for col, dtype in df.dtypes.items()]
         pk_sql = f", PRIMARY KEY ({primary_key})" if primary_key else ""
@@ -34,7 +35,7 @@ class Loader:
         cur.close()
         self.logger.info(f"Ensured table exists: {table_name} (PK={primary_key})")
 
-    # ---------------- CONVERT PANDAS TYPES ----------------
+    '''
     def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         for col in df.columns:
@@ -51,8 +52,8 @@ class Loader:
         #NA -> None
         df = df.where(pd.notna(df), None)
         return df
-    
-    def _sanitize_rejects(self, df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    def _sanitize(self, df: pd.DataFrame) -> pd.DataFrame:
         df_safe = df.copy()
 
         def normalize(x):
@@ -84,7 +85,7 @@ class Loader:
 
         return df_safe
 
-
+    '''
     def df_to_safe_python(df: pd.DataFrame) -> pd.DataFrame:
         df_safe = df.copy()
         for col in df_safe.columns:
@@ -93,9 +94,9 @@ class Loader:
             else:
                 df_safe[col] = df_safe[col].apply(lambda x: None if pd.isna(x) else x)
         return df_safe
+    '''
 
 
-    # ---------------- LOAD DATAFRAME ----------------
     def load(self, df: pd.DataFrame, table_name: str, conflict_cols: list[str] = None, create_if_missing=True):
         if df.empty:
             self.logger.warning(f"{table_name}: DataFrame empty — nothing to load.")
@@ -105,8 +106,9 @@ class Loader:
         df.columns = [c.lower().replace(" ", "_") for c in df.columns]
 
         # Convert pandas types to safe Python types
-        df = self._sanitize_rejects(df)
+        df = self._sanitize(df)
 
+        # Bad name 
         if table_name not in self.allowed_tables:
             raise ValueError(f"Table {table_name} not allowed")
 
@@ -145,7 +147,6 @@ class Loader:
 
             _log_preview(self.logger, df)
             
-
 
 class RejectsLoader:
     allowed_tables = ["public.rejected_cafe_sales"]

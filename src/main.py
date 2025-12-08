@@ -1,6 +1,7 @@
 from src.extract import DataExtractor
 from src.transform import Transformer
 from src.load import Loader, RejectsLoader
+from src.validate import *
 import os
 
 # python -m src.main
