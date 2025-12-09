@@ -12,10 +12,9 @@ class Loader:
         "public.rejected_cafe_sales"
     ]
 
-    def __init__(self, conn_params: dict):
+    def __init__(self, logger: None, conn_params: dict):
         self.conn_params = conn_params
-        self.logger = get_logger(name='Load', log_file='../logs/etl.log')
-
+        self.logger = logger or get_logger(name="ETL", log_file="../logs/etl.log")
     
     def _infer_pg_type(self, dtype):
         if pd.api.types.is_integer_dtype(dtype): return "BIGINT"
@@ -33,7 +32,7 @@ class Loader:
         cur.execute(create_sql)
         conn.commit()
         cur.close()
-        self.logger.info(f"Ensured table exists: {table_name} (PK={primary_key})")
+        self.logger.info(f"Load: Ensured table exists: {table_name} (PK={primary_key})")
 
     '''
     def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -82,6 +81,9 @@ class Loader:
         for col in df_safe.columns:
             normalized_values = [normalize(x) for x in df_safe[col]]
             df_safe[col] = pd.Series(normalized_values, dtype=object)
+        
+        self.logger.info(f"Load: Normalized values in: {df_safe.columns}")
+
 
         return df_safe
 
@@ -99,7 +101,7 @@ class Loader:
 
     def load(self, df: pd.DataFrame, table_name: str, conflict_cols: list[str] = None, create_if_missing=True):
         if df.empty:
-            self.logger.warning(f"{table_name}: DataFrame empty — nothing to load.")
+            self.logger.warning(f"Load: {table_name}: DataFrame empty — nothing to load.")
             return
 
         df = df.copy()
@@ -133,7 +135,7 @@ class Loader:
                 cur.executemany(insert_sql, df.itertuples(index=False, name=None))
                 conn.commit()
                 cur.close()
-                self.logger.info(f"UPSERTED {len(df)} rows into {table_name}")
+                self.logger.info(f"Load: upserted {len(df)} rows into {table_name}")
 
             else:
                 buffer = StringIO()
@@ -143,7 +145,7 @@ class Loader:
                 cur.copy_expert(f"COPY {table_name} FROM STDIN WITH CSV NULL ''", buffer)
                 conn.commit()
                 cur.close()
-                self.logger.info(f"Loaded {len(df)} rows → {table_name}")
+                self.logger.info(f"Load: Loaded {len(df)} rows → {table_name}")
 
             _log_preview(self.logger, df)
             
@@ -151,9 +153,9 @@ class Loader:
 class RejectsLoader:
     allowed_tables = ["public.rejected_cafe_sales"]
 
-    def __init__(self, conn_params: dict):
+    def __init__(self, logger: None, conn_params: dict):
         self.conn_params = conn_params
-        self.logger = get_logger(name='RejectsLoad', log_file='../logs/etl.log')
+        self.logger = logger or get_logger(name='RejectsLoad', log_file='../logs/etl.log')
 
     def _sanitize_rejects(self, df: pd.DataFrame) -> pd.DataFrame:
         df_safe = df.copy()
@@ -184,6 +186,8 @@ class RejectsLoader:
         for col in df_safe.columns:
             normalized_values = [normalize(x) for x in df_safe[col]]
             df_safe[col] = pd.Series(normalized_values, dtype=object)
+        
+        self.logger.info(f"RejectsLoad: Normalized values in: {df_safe.columns}")
 
         return df_safe
 
@@ -196,17 +200,16 @@ class RejectsLoader:
         cur.execute(create_sql)
         conn.commit()
         cur.close()
-        self.logger.info(f"Ensured rejected table exists: {table_name} (PK={primary_key})")
+        self.logger.info(f"RejectsLoad: Ensured rejected table exists: {table_name} (PK={primary_key})")
 
     def load(self, df: pd.DataFrame, table_name: str = "public.rejected_cafe_sales", conflict_cols: list[str] = None, create_if_missing=True):
         
         if df.empty:
-            self.logger.warning("Rejects DataFrame empty — nothing to load.")
+            self.logger.warning("RejectsLoad: Rejects DataFrame empty — nothing to load.")
             return
 
         if table_name not in self.allowed_tables:
-            raise ValueError(f"Table {table_name} not allowed")
-
+            raise ValueError(f"RejectsLoad: Table {table_name} not allowed")
         df_safe = self._sanitize_rejects(df)
         df_safe.columns = [c.lower().replace(" ", "_") for c in df_safe.columns]
 
@@ -232,7 +235,7 @@ class RejectsLoader:
                 """
                 tuples_to_insert = [tuple(row) for row in df_safe.to_numpy()]
                 cur.executemany(insert_sql, tuples_to_insert)
-                self.logger.info(f"UPSERTED {len(df_safe)} rejected rows → {table_name}")
+                self.logger.info(f"RejectsLoad: Upserted {len(df_safe)} rejected rows → {table_name}")
             else:
                 # Normal insert
                 placeholders = ', '.join(['%s'] * len(df_safe.columns))
@@ -240,7 +243,7 @@ class RejectsLoader:
                 insert_sql = f"INSERT INTO {table_name} ({insert_cols}) VALUES ({placeholders});"
                 tuples_to_insert = [tuple(row) for row in df_safe.to_numpy()]
                 cur.executemany(insert_sql, tuples_to_insert)
-                self.logger.info(f"Loaded {len(df_safe)} rejected rows → {table_name}")
+                self.logger.info(f"RejectsLoad: Loaded {len(df_safe)} rejected rows → {table_name}")
 
             conn.commit()
             cur.close()

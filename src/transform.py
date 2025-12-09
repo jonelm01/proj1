@@ -26,46 +26,46 @@ class Transformer:
 
     # PRE-CLEANING VALIDATION
     def validate_raw_df(self, df: pd.DataFrame) -> bool:
-        self.logger.info("Running pre-cleaning validation...")
+        self.logger.info("Validation: Running pre-cleaning validation...")
         df_cols = set(df.columns)
         expected_cols = set(self.expected_schema.keys())
         missing_cols = expected_cols - df_cols
         extra_cols = df_cols - expected_cols
 
         if missing_cols:
-            self.logger.error(f"Missing columns: {missing_cols}")
+            self.logger.error(f"Validation: Missing columns: {missing_cols}")
         if extra_cols:
-            self.logger.warning(f"Extra columns found: {extra_cols}")
+            self.logger.warning(f"Validation: Extra columns found: {extra_cols}")
         if missing_cols:
             return False
 
-        self.logger.info("Pre-cleaning validation passed.")
+        self.logger.info("Validation: Pre-cleaning validation passed.")
         return True
 
 
     # POST-CLEANING VALIDATION
     def validate_clean_df(self, df: pd.DataFrame) -> bool:
-        self.logger.info("Running post-cleaning validation...")
+        self.logger.info("Validation: Running post-cleaning validation...")
         for col, expected_type in self.expected_schema.items():
             if col not in df.columns:
                 continue
             actual_dtype = str(df[col].dtype)
             if expected_type == "float" and not pd.api.types.is_float_dtype(df[col]):
-                self.logger.error(f"Column {col} expected float but found {actual_dtype}")
+                self.logger.error(f"Validation: Column {col} expected float but found {actual_dtype}")
                 return False
             elif expected_type == "int64" and not pd.api.types.is_integer_dtype(df[col]):
-                self.logger.error(f"Column {col} expected int but found {actual_dtype}")
+                self.logger.error(f"Validation: Column {col} expected int but found {actual_dtype}")
                 return False
             elif expected_type == "string" and not pd.api.types.is_string_dtype(df[col]):
-                self.logger.error(f"Column {col} expected string but found {actual_dtype}")
+                self.logger.error(f"Validation: Column {col} expected string but found {actual_dtype}")
                 return False
-        self.logger.info("Post-cleaning validation passed.")
+        self.logger.info("Validation: Post-cleaning validation passed.")
         return True
 
 
     # CLEANING
     def clean(self, df_raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-        self.logger.info("Cleaning DataFrame...")
+        self.logger.info("Cleaning: Cleaning DataFrame...")
 
         df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
@@ -102,10 +102,10 @@ class Transformer:
         df.loc[df["Total Spent"] < 0, "__invalid_domain__"] = True
         
 
-        df_rejects = df[
-            df["__missing_required__"] | df["__invalid_domain__"] | df.isna().any(axis=1)
-        ].copy()
-
+        #df_rejects = df[
+        #    df["__missing_required__"] | df["__invalid_domain__"] | df.isna().any(axis=1)
+        #].copy()
+        df_rejects = df[df["__missing_required__"] | df["__invalid_domain__"]].copy()
         df_clean = df.drop(df_rejects.index).copy()
 
         # Drop temp columns
@@ -116,10 +116,11 @@ class Transformer:
         before = len(df_clean)
         df_clean = df_clean.drop_duplicates(subset=["Transaction ID"])
         after = len(df_clean)
-        self.logger.info(f"Deduplicated: removed {before - after} duplicate rows.")
+        self.logger.info(f"Clean: Deduplicated: removed {before - after} duplicate rows.")
+        df_rejects.reset_index(drop=True, inplace=True)
 
 
-        self.logger.info(f"Clean complete → {len(df_clean)} valid rows, {len(df_rejects)} rejects")
+        self.logger.info(f"Clean: Clean complete: {len(df_clean)} valid rows, {len(df_rejects)} rejects")
         return df_clean, df_rejects
 
 
@@ -134,14 +135,14 @@ class Transformer:
         mask_price = df["Price Per Unit"].isna() & df["Total Spent"].notna() & df["Quantity"].notna() & (df["Quantity"] != 0)
         df.loc[mask_price, "Price Per Unit"] = df.loc[mask_price, "Total Spent"] / df.loc[mask_price, "Quantity"]
 
-        self.logger.info(f"Filled {mask_total.sum()} missing totals")
-        self.logger.info(f"Filled {mask_qty.sum()} missing quantities")
-        self.logger.info(f"Filled {mask_price.sum()} missing prices")
+        self.logger.info(f"Transform: Filled {mask_total.sum()} missing totals")
+        self.logger.info(f"Transform: Filled {mask_qty.sum()} missing quantities")
+        self.logger.info(f"Transform: Filled {mask_price.sum()} missing prices")
         return df
 
 
     def normalize(self, df_clean: pd.DataFrame) -> dict:
-        self.logger.info("Normalizing DataFrame...")
+        self.logger.info("Normalizing: Normalizing DataFrame...")
 
         df = df_clean.copy()
         df.columns = [str(c).strip() for c in df.columns]
@@ -191,6 +192,7 @@ class Transformer:
             "payment_id": "int8",
             "location_id": "int8",
         })
+        self.logger.info("Normalizing: Normalized DataFrame")
 
         return {
             "stg_sales": stg_sales,

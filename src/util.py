@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 import os
 
-def get_logger(name=__name__, log_file=None, level=logging.INFO):
+def get_logger(name="ETL", log_file="logs/etl.log", level=logging.INFO):
     Path("logs").mkdir(exist_ok=True)
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -23,9 +23,11 @@ def get_logger(name=__name__, log_file=None, level=logging.INFO):
     
     return logger
 
+
 def _log_preview(logger, df):
     logger.info(f"First 5 rows:\n{df.head()}")
     try:
         logger.info(f"Dataset summary:\n{df.describe()}")
     except Exception:
         logger.warning("Cannot generate summary")
+

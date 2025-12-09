@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from src.load import Loader, RejectsLoader
 
+logger = MagicMock()
 
 # Fake DB connection 
 @pytest.fixture
@@ -20,7 +21,8 @@ def fake_conn():
 
 
 def test_infer_pg_type():
-    loader = Loader(conn_params={})
+    #logger = MagicMock()
+    loader = Loader(logger, conn_params={})
 
     assert loader._infer_pg_type(pd.Series([1]).dtype) == "BIGINT"
     assert loader._infer_pg_type(pd.Series([1.2]).dtype) == "DOUBLE PRECISION"
@@ -30,7 +32,7 @@ def test_infer_pg_type():
 
 
 def test_create_table(fake_conn):
-    loader = Loader(conn_params={})
+    loader = Loader(logger,conn_params={})
 
     df = pd.DataFrame({"id": [1], "name": ["x"]})
     loader._create_table_if_not_exists(fake_conn, df, "public.stg_product", primary_key="id")
@@ -40,7 +42,7 @@ def test_create_table(fake_conn):
 
 
 def test_sanitize_rejects_timestamps_and_nans():
-    loader = Loader(conn_params={})
+    loader = Loader(logger, conn_params={})
 
     df = pd.DataFrame({
         "a": [pd.Timestamp("2020-01-01"), pd.NaT],
@@ -59,7 +61,7 @@ def test_sanitize_rejects_timestamps_and_nans():
 def test_loader_upsert(mock_get_conn, fake_conn):
     mock_get_conn.return_value = fake_conn
 
-    loader = Loader(conn_params={})
+    loader = Loader(logger,conn_params={})
 
     df = pd.DataFrame({
         "id": [1, 2],
@@ -80,7 +82,7 @@ def test_loader_upsert(mock_get_conn, fake_conn):
 def test_loader_copy(mock_get_conn, fake_conn):
     mock_get_conn.return_value = fake_conn
 
-    loader = Loader(conn_params={})
+    loader = Loader(logger,conn_params={})
 
     df = pd.DataFrame({
         "col1": [1, 2],
@@ -94,7 +96,7 @@ def test_loader_copy(mock_get_conn, fake_conn):
 
 
 def test_loader_empty_df():
-    loader = Loader(conn_params={})
+    loader = Loader(logger,conn_params={})
 
     loader.logger = MagicMock()  
 
@@ -107,7 +109,7 @@ def test_loader_empty_df():
 
  
 def test_loader_invalid_table():
-    loader = Loader(conn_params={})
+    loader = Loader(logger,conn_params={})
 
     df = pd.DataFrame({"id": [1]})
 
@@ -118,7 +120,7 @@ def test_loader_invalid_table():
 # ------------ REJECTS LOADER TESTS -------------
 
 def test_rejects_sanitize():
-    r = RejectsLoader(conn_params={})
+    r = RejectsLoader(logger,conn_params={})
 
     df = pd.DataFrame({
         "a": ["NaN", "x", pd.NA],
@@ -136,7 +138,7 @@ def test_rejects_sanitize():
 def test_rejects_upsert(mock_get_conn, fake_conn):
     mock_get_conn.return_value = fake_conn
 
-    r = RejectsLoader(conn_params={})
+    r = RejectsLoader(logger, conn_params={})
 
     df = pd.DataFrame({
         "id": ["1", "2"],
@@ -157,7 +159,7 @@ def test_rejects_upsert(mock_get_conn, fake_conn):
 def test_rejects_simple_insert(mock_get_conn, fake_conn):
     mock_get_conn.return_value = fake_conn
 
-    r = RejectsLoader(conn_params={})
+    r = RejectsLoader(logger, conn_params={})
 
     df = pd.DataFrame({
         "id": ["99"],
@@ -171,7 +173,7 @@ def test_rejects_simple_insert(mock_get_conn, fake_conn):
 
 
 def test_rejects_empty_df():
-    r = RejectsLoader(conn_params={})
+    r = RejectsLoader(logger,conn_params={})
 
     r.logger = MagicMock()
 
@@ -183,7 +185,7 @@ def test_rejects_empty_df():
 
 
 def test_rejects_invalid_table():
-    r = RejectsLoader(conn_params={})
+    r = RejectsLoader(logger, conn_params={})
 
     df = pd.DataFrame({"id": ["1"]})
 

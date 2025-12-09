@@ -14,11 +14,11 @@ def get_conn(conn_params):
     safe_params = {k: v for k, v in conn_params.items() if k in VALID_CONN_KEYS}
     try:
         conn = psycopg2.connect(**safe_params)
-        logger.info("Postgres connection opened")
+        logger.info("DB: Postgres connection opened")
         yield conn
     finally:
         if conn:
             conn.close()
-            logger.info("Postgres connection closed")
+            logger.info("DB: Postgres connection closed")
 
 

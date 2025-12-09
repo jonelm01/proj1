@@ -6,3 +6,4 @@ pytest-cov
 psycopg2
 numpy
 pyyaml
+streamlit
