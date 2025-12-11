@@ -5,7 +5,6 @@ from src.util import get_logger
 
 logger = get_logger(name='Connection', log_file='../logs/etl.log', level=logging.INFO)
 
-# Keys from .env
 VALID_CONN_KEYS = {"host", "database", "user", "password", "port"}
 
 @contextmanager

@@ -1,9 +1,11 @@
-pandas
-psycopg2-binary
+altair==6.0.0
+numpy==1.21.4
+pandas==1.3.4
+psycopg2_binary==2.9.11
+pytest==8.4.2
+PyYAML==6.0.1
+PyYAML==6.0.3
+streamlit==1.32.2
 python-dotenv
-pytest
 pytest-cov
 psycopg2
-numpy
-pyyaml
-streamlit

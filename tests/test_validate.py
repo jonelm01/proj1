@@ -26,7 +26,7 @@ def test_validate_raw_df_missing_cols(transformer):
     df = pd.DataFrame({
         "Transaction ID": [1],
         "Item": ["A"]
-        # missing the other required columns
+        # missing other req columns
     })
 
     assert transformer.validate_raw_df(df) is False

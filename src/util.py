@@ -7,7 +7,7 @@ def get_logger(name="ETL", log_file="logs/etl.log", level=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
     
-    # Dont make multiple handlers 
+    # Only ever one handler
     if not logger.handlers:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         

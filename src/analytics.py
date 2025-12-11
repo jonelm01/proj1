@@ -9,21 +9,6 @@ class SalesAnalytics:
         
         self.sales['transaction_date'] = pd.to_datetime(self.sales['transaction_date'])
     
-    
-    #!! maybe remove
-    '''
-    def summary_metrics(self):
-        total_sales = self.sales['total_spent'].sum()
-        avg_transaction = self.sales['total_spent'].mean()
-        num_transactions = self.sales.shape[0]
-        summary = pd.DataFrame({
-            'Metric': ['Total Sales', 'Average Transaction', 'Number of Transactions'],
-            'Value': [total_sales, avg_transaction, num_transactions]
-        })
-        summary = summary.sort_values('Value', ascending=False).reset_index(drop=True)
-        summary.title = "Overall Sales Summary"
-        return summary
-    '''
    
     def sales_by_product(self):
         df = self.sales.groupby('product_id')['total_spent'].sum().reset_index()

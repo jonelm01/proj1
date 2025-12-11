@@ -7,9 +7,9 @@ def sample_valid_df():
     return pd.DataFrame({
         "Transaction ID": ["TXN_1", "TXN_2", "TXN_3"],
         "Item": ["Coffee", "Tea", "Latte"],
-        "Quantity": [1, 2, None],  # Missing value to test fill
+        "Quantity": [1, 2, None],  # test fill
         "Price Per Unit": [3.5, 2.5, 4.0],
-        "Total Spent": [None, 5.0, 4.0],  # Missing total to test fill
+        "Total Spent": [None, 5.0, 4.0],  # test fill
         "Payment Method": ["Cash", "Card", "Cash"],
         "Location": ["Store1", "Store2", "Store1"],
         "Transaction Date": ["2025-12-01", "2025-12-01", "2025-12-01"]
@@ -39,7 +39,6 @@ def test_clean_deduplicates(sample_valid_df):
     transformer = Transformer()
     df_clean, df_rejects = transformer.clean(df_dupes)
 
-    # Only unique Transaction IDs should remain
     assert df_clean["Transaction ID"].nunique() == 3
 
 
@@ -64,7 +63,6 @@ def test_normalize_structure(sample_valid_df):
     assert "stg_location" in normalized
     assert "stg_payment_method" in normalized
 
-    # Check sales table columns
     sales_cols = ["transaction_id", "product_id", "quantity", "total_spent", "payment_id", "location_id", "transaction_date"]
     for col in sales_cols:
         assert col in normalized["stg_sales"].columns
