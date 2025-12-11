@@ -106,7 +106,7 @@ def run_etl(input_file: str, db_conf: dict, logger=None):
 def streamlit_app():
     st.set_page_config(
         page_title="Cafe Sales ETL Dashboard",
-        layout="wide",       # <-- makes the page wider
+        layout="wide",
         initial_sidebar_state="expanded"
     )
     db_conf = {
@@ -304,10 +304,6 @@ def streamlit_app():
             )
 
             st.altair_chart(chart, use_container_width=True)
-
-
-
-
 
 
 if __name__ == "__main__":
