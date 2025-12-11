@@ -5,16 +5,16 @@ The project processes dirty, raw cafe sales data, validates, cleans, and normali
 It includes full test coverage via pytest, structured logging, config management, and simple CLI execution.
 
 ## Installation
-1. Clone the repo
+Clone the repo
 ```
 git clone https://github.com/jonelm01/proj1.git 
 cd proj1
 ```
 
-3. Install dependencies
+Install dependencies
 ```pip install -r requirements.txt```
 
-4. Configure .env
+Configure .env
 
 ```
 DB_HOST=host
